@@ -10,11 +10,11 @@ st.set_page_config(layout="wide", page_title="Dashboard Komplain")
 def load_data():
     # Load data komplain
     df_complaint = pd.read_excel("TnQ-Report-2026_Github.xlsx", sheet_name="Complaint")
-    # Load data master NIP
-    df_master = pd.read_excel("TnQ-Report-2026_Github.xlsx", sheet_name="Master_NIP")
+    # Load data dari sheet "Master Data"
+    df_master = pd.read_excel("TnQ-Report-2026_Github.xlsx", sheet_name="Master Data")
     
     # MENGGABUNGKAN DATA (Merge)
-    # Kita gabungkan berdasarkan kolom NIP
+    # Pastikan kedua sheet memiliki kolom 'NIP'
     df = pd.merge(df_complaint, df_master[['NIP', 'Division']], on='NIP', how='left')
     return df
 
@@ -23,7 +23,6 @@ df = load_data()
 # --- SIDEBAR: FILTER ---
 st.sidebar.header("FILTER DATA")
 bulan_pilihan = st.sidebar.selectbox("Bulan:", df["Month"].unique())
-# Sekarang bisa filter berdasarkan Division yang baru saja di-merge
 div_pilihan = st.sidebar.multiselect("Pilih Division:", df["Division"].unique())
 project_pilihan = st.sidebar.multiselect("Project:", df["Project"].unique())
 
@@ -45,11 +44,21 @@ col1.metric("Total Kasus Komplain", len(data_filtered))
 col2.metric("Total Divisi Terdampak", data_filtered["Division"].nunique())
 
 # --- VISUALISASI ---
-st.subheader("Tren Komplain per Divisi")
-div_counts = data_filtered["Division"].value_counts().reset_index()
-div_counts.columns = ["Division", "Jumlah"]
-fig_div = px.bar(div_counts, x="Division", y="Jumlah", title="Jumlah Komplain per Divisi")
-st.plotly_chart(fig_div, use_container_width=True)
+col_a, col_b = st.columns(2)
+
+with col_a:
+    st.subheader("Komplain per Agen (Top 10)")
+    top_agents = data_filtered["Agent"].value_counts().head(10).reset_index()
+    top_agents.columns = ["Agent", "Jumlah"]
+    fig_agent = px.bar(top_agents, x="Jumlah", y="Agent", orientation='h', title="Agen dengan Komplain Terbanyak")
+    st.plotly_chart(fig_agent, use_container_width=True)
+
+with col_b:
+    st.subheader("Distribusi Komplain per Divisi")
+    div_counts = data_filtered["Division"].value_counts().reset_index()
+    div_counts.columns = ["Division", "Jumlah"]
+    fig_div = px.pie(div_counts, names="Division", values="Jumlah", title="Proporsi per Divisi")
+    st.plotly_chart(fig_div, use_container_width=True)
 
 # --- TABEL DETAIL ---
 st.subheader("Detail Data Komplain")
